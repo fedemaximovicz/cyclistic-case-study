@@ -118,3 +118,76 @@ def import_csv():
 if __name__ == "__main__":
   import_csv()
 ```
+
+## Process
+The first step taken to begin the data cleaning process was checking for duplicates. 
+The following SQL query uses a CTE with ROW_NUMBER() and PARTITION BY, it checks for exact duplicates containing the same values in all of the columns. 
+```SQL
+WITH duplicate_cte AS (
+	SELECT *,
+	ROW_NUMBER() OVER (
+		PARTITION BY ride_id, rideable_type, started_at, ended_at, start_station_name,
+			start_station_id, end_station_name, end_station_id, start_lat, start_lng,
+			end_lat, end_lng, member_casual
+	) AS row_number
+	FROM trip_data
+)
+SELECT *
+FROM duplicate_cte
+WHERE
+	row_number > 1
+```
+No duplicates were found
+![image shwowing the query returning no duplicates](/images/no-duplicates.png)
+
+So knowing that each trip has a unique identifier "trip_id", which means that there should only exist one record containing a given trip_id, the next step was to check for duplicates just using that column. This is to check for duplicates rows that share the same trip_id but have different values.
+```SQL
+WITH duplicate_cte AS (
+	SELECT *,
+	ROW_NUMBER() OVER (
+		PARTITION BY ride_id
+	) AS row_number
+	FROM trip_data
+)
+SELECT *
+FROM duplicate_cte
+WHERE
+	row_number > 1
+```
+After running the query we can see that duplicates were found:
+![Images showing the results of the query, duplicated values were found](/images/duplicates-found.png)
+
+Checking a couple of duplicates, randomly selected, we can observe that they have the same values in all the columns except for the started_at and ended_at columns.
+```SQL
+SELECT * FROM trip_data WHERE ride_id = '0354FD0756337B59'
+```
+| ride_id          | rideable_type  | started_at                | ended_at                  | start_station_name | start_station_id | end_station_name | end_station_id | start_lat | start_lng | end_lat | end_lng | member_casual |
+|------------------|----------------|---------------------------|---------------------------|--------------------|------------------|------------------|----------------|-----------|-----------|---------|---------|----------------|
+| 0354FD0756337B59 | electric_bike  | 2024-05-31 23:34:36.273   | 2024-06-01 00:14:29.238   |                    |                  |                  |                | 41.97     | -87.66    | 41.96   | -87.66  | casual         |
+| 0354FD0756337B59 | electric_bike  | 2024-05-31 23:34:36       | 2024-06-01 00:14:29       |                    |                  |                  |                | 41.97     | -87.66    | 41.96   | -87.66  | casual         |
+
+**Another example**:
+```SQL
+SELECT * FROM trip_data WHERE ride_id = '0354FD0756337B59'
+```
+| ride_id          | rideable_type | started_at              | ended_at                | start_station_name    | start_station_id | end_station_name         | end_station_id | start_lat       | start_lng      | end_lat      | end_lng      | member_casual |
+|------------------|---------------|-------------------------|-------------------------|-----------------------|------------------|--------------------------|----------------|-----------------|----------------|--------------|--------------|---------------|
+| 0625A51D397A68F9 | classic_bike  | 2024-05-31 23:51:12.862 | 2024-06-01 00:01:17.815 | Shedd Aquarium        | 15544            | Dearborn St & Van Buren St | 624            | 41.86722595682  | -87.6153553902 | 41.876268    | -87.629155   | casual        |
+| 0625A51D397A68F9 | classic_bike  | 2024-05-31 23:51:12     | 2024-06-01 00:01:17     | Shedd Aquarium        | 15544            | Dearborn St & Van Buren St | 624            | 41.86722595682  | -87.6153553902 | 41.876268    | -87.629155   | casual        |
+
+One of the rows contains a started_at and ended_at timestamp with more precision. This explains why when running the query to find duplicates containing the same columns did not return any rows.
+
+Counting the number of duplicates we can confirm that there are 211 duplicates.
+```SQL
+SELECT COUNT(*)
+FROM (
+	SELECT
+	ROW_NUMBER() OVER (
+		PARTITION BY ride_id
+	) AS row_number
+	FROM trip_data
+)subquery
+WHERE row_number > 1;
+```
+
+The next step is to remove the duplicated values. Since the table was going to updated, it was decided to create a new table to perform this operation safely, TripDataStaging
