@@ -75,13 +75,16 @@ ROW_NUMBER() OVER (
 ) AS row_number
 FROM trip_data
 
-SELECT * FROM trip_data_staging LIMIT 100
+SELECT * FROM trip_data_staging ORDER BY ride_id LIMIT 100
 
 SELECT * FROM trip_data_staging
 WHERE row_number > 1
 
 DELETE FROM trip_data_staging
 WHERE row_number > 1
+
+--drop row_number column
+ALTER TABLE trip_data_staging DROP COLUMN row_number
 
 --standardizing data
 SELECT DISTINCT(rideable_type) FROM trip_data_staging
@@ -90,10 +93,77 @@ SELECT DISTINCT(start_station_name)
 FROM trip_data_staging 
 ORDER BY start_station_name
 
-SELECT start_station_name, TRIM(start_station_name)
+--check if some rows of start_station_name have extra spaces
+SELECT start_station_name, TRIM(start_station_name) AS trimmed_station_name
 FROM trip_data_staging
-ORDER BY start_station_name LIMIT 50
+WHERE start_station_name <> TRIM(start_station_name)
+ORDER BY start_station_name
+
+SELECT * FROM trip_data_staging
+WHERE start_station_name = 'Public Rack - Forest Glen Station '
+
+--trim the values of start_station_name columns
+UPDATE trip_data_staging
+SET start_station_name = TRIM(start_station_name)
 
 
+--same process for end_station_name
+SELECT end_station_name, TRIM(end_station_name) AS trimmed_station_name
+FROM trip_data_staging
+WHERE end_station_name <> TRIM(end_station_name)
+ORDER BY end_station_name
 
+UPDATE trip_data_staging
+SET end_station_name = TRIM(end_station_name)
 
+--check values of member_casual column
+SELECT DISTINCT(member_casual) FROM trip_data_staging
+
+SELECT * FROM trip_data_staging
+WHERE start_station_name IS NULL OR end_station_name is NULL
+
+SELECT DISTINCT 
+	(start_station_name) 
+FROM 
+	trip_data_staging
+WHERE 
+	start_lat >= 41.93 AND start_lat < 41.94 
+--159 rows, no posibilities of estimating what the start station is
+
+SELECT COUNT(*) FROM trip_data_staging
+
+SELECT * FROM trip_data_staging
+WHERE start_station_name IS NULL AND end_station_name IS NULL
+--ORDER BY started_at
+
+SELECT DISTINCT(rideable_type) FROM trip_data_staging
+WHERE start_station_name IS NULL AND end_station_name IS NULL
+
+SELECT
+	rideable_type,
+	COUNT (*) FILTER (WHERE start_station_name IS NULL AND end_station_name IS NULL) AS null_stations
+FROM
+	trip_data_staging
+GROUP BY
+	rideable_type
+
+SELECT 
+	rideable_type,
+	count(*) FILTER (WHERE rideable_type = 'electric_bike') AS number_of_bikes
+FROM
+	trip_data_staging
+GROUP BY
+	rideable_type
+--trips made with electric bikes: 2991565
+
+SELECT * FROM trip_data_staging
+WHERE member_casual IS NULL
+
+SELECT * FROM trip_data_staging
+WHERE 
+	start_lat IS NULL OR start_lng IS NULL 
+	OR end_lat IS NULL OR end_lng IS NULL
+
+SELECT * FROM trip_data_staging
+WHERE
+	start_lat IS NULL OR start_lng IS NULL
