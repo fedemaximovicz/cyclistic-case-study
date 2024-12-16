@@ -190,4 +190,162 @@ FROM (
 WHERE row_number > 1;
 ```
 
-The next step is to remove the duplicated values. Since the table was going to updated, it was decided to create a new table to perform this operation safely, TripDataStaging
+The next step is to remove the duplicated values. Since the table was going to updated, it was decided to create a new table to perform this operation safely, trip_data_staging
+```SQL
+CREATE TABLE trip_data_staging (
+	ride_id VARCHAR(50),
+	rideable_type VARCHAR(50),
+	started_at TIMESTAMP,
+	ended_at TIMESTAMP,
+	start_station_name VARCHAR(100),
+	start_station_id VARCHAR(50),
+	end_station_name VARCHAR(100),
+	end_station_id VARCHAR(50),
+	start_lat DOUBLE PRECISION,
+	start_lng DOUBLE PRECISION,
+	end_lat DOUBLE PRECISION,
+	end_lng DOUBLE PRECISION,
+	member_casual VARCHAR(15),
+	row_number INT
+)
+```
+
+Then inserting the values of the trip_data table to the new one, and using row_number to then identify and eliminate the duplicates:
+```SQL
+INSERT INTO trip_data_staging
+SELECT *,
+ROW_NUMBER() OVER (
+	PARTITION BY ride_id
+) AS row_number
+FROM trip_data
+```
+
+```SQL
+DELETE FROM trip_data_staging
+WHERE row_number > 1
+```
+
+After deleting the duplicates, the row_number column was no longer needed, so the column was dropped.
+```SQL
+ALTER TABLE trip_data_staging DROP COLUMN row_number
+```
+
+### Standardizing the data
+The process of standarization began by checking the values of the columns, to spot if there were two different versions of entries like, for example, the ones containing "classic_bike" and "classic_bike."
+```SQL
+SELECT DISTINCT(rideable_type) FROM trip_data_staging
+```
+![checking rideable_type values](/images/check-rideable-type.png)
+
+**Checking the member_casual column**:
+![checking member_casual values](/images/check-member-casual.png)
+
+```SQL
+SELECT DISTINCT(start_station_name)
+FROM trip_data_staging 
+ORDER BY start_station_name
+```
+There are many different station names to check visually, so it was proceeded to check for the ones containing extra spacaces using the TRIM function:
+```SQL
+SELECT start_station_name, TRIM(start_station_name) AS trimmed_station_name
+FROM trip_data_staging
+WHERE start_station_name <> TRIM(start_station_name)
+ORDER BY start_station_name
+```
+
+There were in fact some stations containing an extra space
+![Start station names with white spaces](/images/start-station-name-whitespaces.png)
+
+```SQL
+SELECT end_station_name, TRIM(end_station_name) AS trimmed_station_name
+FROM trip_data_staging
+WHERE end_station_name <> TRIM(end_station_name)
+ORDER BY end_station_name
+```
+![End station names with white spaces](/images/end-station-name-whitespaces.png)
+
+So the next step was to update this values replacing them with their trimmed version.
+```SQL
+UPDATE trip_data_staging
+SET start_station_name = TRIM(start_station_name);
+
+UPDATE trip_data_staging
+SET end_station_name = TRIM(end_station_name)
+```
+
+### Checking for nulls
+The first step taken was to check the rideable_type, started_at, and ended_at columns
+```SQL
+SELECT 
+	* 
+FROM 
+	trip_data_staging
+WHERE 
+	rideable_type IS NULL OR started_at IS NULL OR ended_at IS NULL
+```
+No null values were found.
+
+The member_casual column didn't return nulls either
+```SQL
+SELECT * FROM trip_data_staging
+WHERE member_casual IS NULL
+```
+
+The start_station_name and end_station_name return many null values.
+```SQL
+SELECT 
+	* 
+FROM 
+	trip_data_staging
+WHERE 
+	start_station_name IS NULL OR end_station_name is NULL
+```
+![records containing null values](/images/nulls-found.png)
+
+As we can observe, 1,660,073 rows contain null values on the start_station_name or end_station_name columns.
+
+**Checking for rows containing nulls on both start_station_name and end_station_name**:
+```SQL
+SELECT 
+	* 
+FROM 
+	trip_data_staging
+WHERE 
+	start_station_name IS NULL AND end_station_name IS NULL
+```
+531,150 rows were returned from this query, this number represents around the 9% of all the data. So after knowing this some questions were rised:
+- Are this rows going to be useful for the analysis?
+- Should these rows be deleted?
+- Deleting this rows would cause the analysis to be skewed in some way?
+
+Taking a look at the rows with nulls, all the rows that have a null in start_station_name or end_station_name have in common that the start_lat, start_lng, or end_lat and end_lng with is value containing just two decimal places. Since this are coorditanes, this information is incomplete since they are not precise.
+![incomplete coordinates](/images/lat-lng-precision.png)
+
+**Checking for rows where start_lat and start_lng are null**:
+```SQL
+SELECT
+	*
+FROM
+	trip_data_staging
+WHERE
+	start_lat IS NULL OR start_lng IS NULL 
+```
+``` bash
+ No rows were returned
+```
+
+**Checking for rows where end_lat and end_lng are null**:
+```SQL
+SELECT
+	start_station_name, start_station_id, end_station_name, end_station_id,
+	start_lat, start_lng, end_lat, end_lng
+FROM
+	trip_data_staging
+WHERE
+	end_lat IS NULL OR end_lng IS NULL 
+```
+This query returned 7377 rows.
+![null end_lat and end_lng](/images/null-cooridnates.png)
+
+This showed that only the end_lat and end_lng columns contained null values, and the rows are trips that were started but without data of they end location. This might be an indicator of bikes that were stolen.
+

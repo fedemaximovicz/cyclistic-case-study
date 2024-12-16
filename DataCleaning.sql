@@ -119,8 +119,20 @@ SET end_station_name = TRIM(end_station_name)
 --check values of member_casual column
 SELECT DISTINCT(member_casual) FROM trip_data_staging
 
-SELECT * FROM trip_data_staging
-WHERE start_station_name IS NULL OR end_station_name is NULL
+-- Checking for nulls
+SELECT 
+	* 
+FROM 
+	trip_data_staging
+WHERE 
+	rideable_type IS NULL OR started_at IS NULL OR ended_at IS NULL
+
+SELECT 
+	* 
+FROM 
+	trip_data_staging
+WHERE 
+	start_station_name IS NULL OR end_station_name is NULL
 
 SELECT DISTINCT 
 	(start_station_name) 
@@ -132,9 +144,49 @@ WHERE
 
 SELECT COUNT(*) FROM trip_data_staging
 
-SELECT * FROM trip_data_staging
-WHERE start_station_name IS NULL AND end_station_name IS NULL
+SELECT 
+	* 
+FROM 
+	trip_data_staging
+WHERE 
+	start_station_name IS NULL AND end_station_name IS NULL
 --ORDER BY started_at
+
+SELECT
+	*
+FROM
+	trip_data_staging
+WHERE
+	start_lat IS NULL OR start_lng IS NULL 
+
+SELECT
+	start_station_name, start_station_id, end_station_name, end_station_id,
+	start_lat, start_lng, end_lat, end_lng
+FROM
+	trip_data_staging
+WHERE
+	end_lat IS NULL OR end_lng IS NULL 
+
+SELECT
+	DISTINCT(rideable_type)
+FROM
+	trip_data_staging
+WHERE
+	end_lat IS NULL OR end_lng IS NULL 
+
+SELECT
+	DISTINCT(member_casual)
+FROM
+	trip_data_staging
+WHERE
+	end_lat IS NULL OR end_lng IS NULL
+
+SELECT
+	COUNT (*)
+FROM
+	trip_data_staging
+WHERE
+	rideable_type = 'classic_bike'
 
 SELECT DISTINCT(rideable_type) FROM trip_data_staging
 WHERE start_station_name IS NULL AND end_station_name IS NULL
@@ -146,6 +198,14 @@ FROM
 	trip_data_staging
 GROUP BY
 	rideable_type
+
+SELECT
+	member_casual,
+	COUNT (*) FILTER (WHERE start_station_name IS NULL AND end_station_name IS NULL) AS null_stations
+FROM
+	trip_data_staging
+GROUP BY
+	member_casual
 
 SELECT 
 	rideable_type,
@@ -159,11 +219,4 @@ GROUP BY
 SELECT * FROM trip_data_staging
 WHERE member_casual IS NULL
 
-SELECT * FROM trip_data_staging
-WHERE 
-	start_lat IS NULL OR start_lng IS NULL 
-	OR end_lat IS NULL OR end_lng IS NULL
 
-SELECT * FROM trip_data_staging
-WHERE
-	start_lat IS NULL OR start_lng IS NULL
