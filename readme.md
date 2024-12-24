@@ -347,5 +347,110 @@ WHERE
 This query returned 7377 rows.
 ![null end_lat and end_lng](/images/null-cooridnates.png)
 
-This showed that only the end_lat and end_lng columns contained null values, and the rows are trips that were started but without data of they end location. This might be an indicator of bikes that were stolen.
+This showed that only the end_lat and end_lng columns contained null values, and the rows are trips that were started but without data of the ending location of the trip. This might be an indicator of bikes that were stolen.
+
+#### Trying to fill out missing values:
+The first attempt to fill the null values found, was to see if there were rows with a null start_station_name that had a start_station_id that wasn't null, and the same with end_station_name and end_station_id
+```SQL
+SELECT
+	*
+FROM
+	trip_data_staging
+WHERE
+	start_station_name IS NULL AND start_station_id IS NOT NULL
+```
+```bash
+no rows were returned
+```
+
+
+```SQL
+SELECT
+	*
+FROM
+	trip_data_staging
+WHERE
+	end_station_name IS NULL AND end_station_id IS NOT NULL
+```
+```bash
+again, 0 rows were returned
+```
+
+This meant that it is not possible to fill the name of the start or end station with their correspondent id. This is because, when the latitude and longitude data is incomplete, everything related to that station, the name and the id, is null.
+
+The second attempt was trying to obtain the station data by querying trips within a certain range of coordinates. For example, if there is a row with a start_lat of 41.93, the trips with a start_lat between 41.93 and 41.94 will be retrieved. At first hand this seems difficult because coordinates need to be precise.
+```SQL
+SELECT DISTINCT 
+	(start_station_name) 
+FROM 
+	trip_data_staging
+WHERE 
+	start_lat >= 41.93 AND start_lat < 41.94 
+```
+![trips in the given coordinate interval](/images/stations-coord.png)
+
+159 rows were returned, so there is no posibility of estimating the start station.
+
+
+Another attempt was trying by, within that interval, finding the station with the most trips started.
+```SQL
+SELECT
+	start_station_name,
+	COUNT(*) AS number_of_trips
+FROM
+	trip_data_staging
+WHERE
+	start_lat >= 41.93 AND start_lat < 41.94 
+GROUP BY
+	start_station_name
+ORDER BY number_of_trips DESC
+```
+![number of trips startead on each station in the given coordinate interval](/images/n-stations-coord.png)
+The number of trips for each station were quite evenly distributed, so this approach was not possible.
+
+#### Deleting the rows with null values
+Since there was no way to fill the missing values, to keep the data clean this rows containing both the start and end station data as null will be removed. To measure the impact the deletion of these records will have on the data, the first thing was to find the type of bikes containing this null values to see if this affects a specific type of bike.
+```SQL
+SELECT
+	rideable_type,
+	COUNT (*) FILTER (WHERE start_station_name IS NULL AND end_station_name IS NULL) AS null_stations
+FROM
+	trip_data_staging
+GROUP BY
+	rideable_type
+```
+![number trips with null values of each type of bike](/images/rideable-type-nulls.png)
+
+This shows that most trips that have nulls in start station and end station information are the ones made with electric bikes, with 489,656 rows. So deleting these records will have an impact on the trip data of electric bikes.
+```SQL
+SELECT
+	COUNT (*) AS electric_bike_trips
+FROM
+	trip_data_staging
+WHERE
+	rideable_type = 'electric_bike'
+```
+This query returns the amount of trips made with electric bikes, 2,991,565 trips. So 489,656 represent around the 16.36% of trips made with electric bikes.
+
+Since the main of objective of the analysis is how casual and member clients use the bikes, it was important to see how the deletion of these records impact each type of client.
+```SQL
+SELECT
+	member_casual,
+	COUNT (*) FILTER (WHERE start_station_name IS NULL AND end_station_name IS NULL) AS null_stations
+FROM
+	trip_data_staging
+GROUP BY
+	member_casual
+```
+![number of trips with null station data by client type](/images/user-type-nulls.png)
+Each client type has a similar number of rows with null station data.
+
+It was decided that the rows that contain nulls in **both** the start station, and end station data will be deleted.
+```SQL
+DELETE
+FROM
+	trip_data_staging
+WHERE
+	start_station_name IS NULL AND end_station_name IS NULL
+```
 
