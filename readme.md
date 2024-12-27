@@ -2,14 +2,14 @@
 The aim of this project is to gain insight on how casual members and annual members use Cyclistic bikes differently, by analyzing ride data of the past 12 months. The director of marketing believes the company's future success
 depends on maximizing the number of annual memberships, so these insights will be used to design a new marketing strategy to increase the number of annual members.
 
-## Ask
+# Ask
 **Three questions will guide the future marketing program:**
 1. How do annual members and casual riders use Cyclistic bikes differently?
 2. Why would casual riders buy Cyclistic annual memberships?
 3. How can Cyclistic use digital media to influence casual riders to become members?
 
 
-## Prepare
+# Prepare
 The data used for the project is Cyclistic's historical trip data (https://divvy-tripdata.s3.amazonaws.com/index.html). The last 12 months of data available will be used, starting from November 2023 up to October 2024. It's organized in 12 CSV, since Cyclistic uploads the trip data monthly. The 12 files were decompressed and extracted into a folder named "data".
 
 ### Quality of the data
@@ -119,7 +119,7 @@ if __name__ == "__main__":
   import_csv()
 ```
 
-## Process
+# Process
 The first step taken to begin the data cleaning process was checking for duplicates. 
 The following SQL query uses a CTE with ROW_NUMBER() and PARTITION BY, it checks for exact duplicates containing the same values in all of the columns. 
 ```SQL
@@ -337,8 +337,7 @@ WHERE
 **Checking for rows where end_lat and end_lng are null**:
 ```SQL
 SELECT
-	start_station_name, start_station_id, end_station_name, end_station_id,
-	start_lat, start_lng, end_lat, end_lng
+	*
 FROM
 	trip_data_staging
 WHERE
@@ -348,6 +347,46 @@ This query returned 7377 rows.
 ![null end_lat and end_lng](/images/null-cooridnates.png)
 
 This showed that only the end_lat and end_lng columns contained null values, and the rows are trips that were started but without data of the ending location of the trip. This might be an indicator of bikes that were stolen.
+It was also found something that all rows with null end station coordinates had in common.
+![start times and end times of trips with null values of end station coordinates](/images/trip-durations.png)
+The trips lasted more than 24 hours.
+
+The rows with null end_station coordinates were distributed in the following way for rideable types and user types:
+```SQL
+SELECT
+	member_casual,
+	COUNT(*) FILTER (WHERE end_lat IS NULL OR end_lng IS NULL) AS null_destinations
+FROM
+	trip_data_staging
+GROUP BY
+	member_casual
+
+```
+| member_casual | null_destinations |
+|----------|-------|
+| casual   | 5939  |
+| member   | 1438  |
+
+
+```SQL
+SELECT
+	rideable_type,
+	COUNT(*) FILTER (WHERE end_lat IS NULL OR end_lng IS NULL) AS null_destinations
+FROM
+	trip_data_staging
+GROUP BY
+	rideable_type
+```
+| rideable_type     | null_destinations |
+|-------------------|-------------------|
+| classic_bike      | 7377              |
+| electric_bike     | 0                 |
+| electric_scooter  | 0                 |
+
+This only occured to classic bikes.
+
+
+This rows were not going to be useful for the analysis, since they don't represent a big part of the data, they don't have any end station data and trips of more than 24 hours can be considered outliers.
 
 #### Trying to fill out missing values:
 The first attempt to fill the null values found, was to see if there were rows with a null start_station_name that had a start_station_id that wasn't null, and the same with end_station_name and end_station_id
@@ -408,8 +447,8 @@ ORDER BY number_of_trips DESC
 ![number of trips startead on each station in the given coordinate interval](/images/n-stations-coord.png)
 The number of trips for each station were quite evenly distributed, so this approach was not possible.
 
-#### Deleting the rows with null values
-Since there was no way to fill the missing values, to keep the data clean this rows containing both the start and end station data as null will be removed. To measure the impact the deletion of these records will have on the data, the first thing was to find the type of bikes containing this null values to see if this affects a specific type of bike.
+#### Deleting the rows with nulls or not
+To measure the impact the deletion of these records will have on the data, the first thing was to find the type of bikes containing this null values to see if this affects a specific type of bike.
 ```SQL
 SELECT
 	rideable_type,
@@ -443,14 +482,27 @@ GROUP BY
 	member_casual
 ```
 ![number of trips with null station data by client type](/images/user-type-nulls.png)
+
 Each client type has a similar number of rows with null station data.
 
-It was decided that the rows that contain nulls in **both** the start station, and end station data will be deleted.
+It was decided to keep this rows, since the deletion of them would represent a loss of around the 16.36% of electric bike trips and this will have an inpact on the analysis of trips by rideable type. This rows will be excluded from the queries when working on geographic analysis of the trips.
+
+
+
+# Analysis
+The first step of the analysis was to check how the trips were distributed between member and casual clients.
 ```SQL
-DELETE
+SELECT
+	member_casual,
+	count (*) AS number_of_trips
 FROM
 	trip_data_staging
-WHERE
-	start_station_name IS NULL AND end_station_name IS NULL
+GROUP BY
+	member_casual
 ```
+| member_casual | number_of_trips |
+|---------------|-----------------|
+| casual        | 2164197         |
+| member        | 3761927         |
+
 

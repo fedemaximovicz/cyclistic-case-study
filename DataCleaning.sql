@@ -224,8 +224,7 @@ WHERE
 
 
 SELECT
-	start_station_name, start_station_id, end_station_name, end_station_id,
-	start_lat, start_lng, end_lat, end_lng
+	*
 FROM
 	trip_data_staging
 WHERE
@@ -234,20 +233,30 @@ WHERE
 
 
 SELECT
-	DISTINCT(rideable_type)
+	rideable_type,
+	COUNT(*) FILTER (WHERE end_lat IS NULL OR end_lng IS NULL) AS null_destinations
 FROM
 	trip_data_staging
-WHERE
-	end_lat IS NULL OR end_lng IS NULL 
-
+GROUP BY
+	rideable_type
+	
 
 
 SELECT
-	DISTINCT(member_casual)
+	member_casual,
+	COUNT(*) FILTER (WHERE end_lat IS NULL OR end_lng IS NULL) AS null_destinations
 FROM
 	trip_data_staging
+GROUP BY
+	member_casual
+
+
+
+DELETE
+FROM 
+	trip_data_staging
 WHERE
-	end_lat IS NULL OR end_lng IS NULL
+	end_lat IS NULL AND end_lng IS NULL
 
 
 
@@ -354,12 +363,6 @@ WHERE member_casual IS NULL
 
 
 
---Deleting the rows with nulls in both start_station_name and end_station_name
-DELETE
-FROM
-	trip_data_staging
-WHERE
-	start_station_name IS NULL AND end_station_name IS NULL
 
 
 
