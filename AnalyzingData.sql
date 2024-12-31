@@ -156,6 +156,8 @@ SELECT
 	AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) AS avg_trip_duration_minutes
 FROM
 	trip_data_staging
+WHERE
+	z_score <= 3
 GROUP BY
 	member_casual
 
@@ -169,6 +171,8 @@ SELECT
 		FILTER (WHERE member_casual = 'casual') AS avg_trip_duration_casual
 FROM
 	trip_data_staging
+WHERE
+	z_score <= 3
 GROUP BY
 	day_of_week
 
@@ -183,8 +187,26 @@ SELECT
 		FILTER (WHERE member_casual = 'casual') AS avg_trip_duration_casual
 FROM
 	trip_data_staging
+WHERE
+	z_score <= 3
 GROUP BY
 	hour_of_day
+
+
+
+-- average trip duration by month
+SELECT 
+    TO_CHAR(started_at, 'Month') AS month,
+    AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+		FILTER (WHERE member_casual = 'member') AS avg_trip_duration_member,
+	AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+		FILTER (WHERE member_casual = 'casual') AS avg_trip_duration_casual
+FROM
+	trip_data_staging
+WHERE
+	z_score <= 3
+GROUP BY
+	month
 
 
 
@@ -206,24 +228,6 @@ SELECT
 FROM
 	trip_data_staging
 LIMIT 1000
-
-
-
-SELECT
-	start_station_name,
-	start_lat,
-	start_lng,
-	count(*) AS number_of_trips
-FROM 
-	trip_data_staging
-WHERE
-	start_station_name IS NOT NULL
-GROUP BY
-	start_station_name,
-	start_lat,
-	start_lng
-ORDER BY 
-	number_of_trips DESC
 
 	
 
@@ -286,11 +290,9 @@ SELECT
 FROM 
 	trip_data_staging
 WHERE
-	start_station_name IS NOT NULL
+	start_station_name IS NOT NULL AND z_score <= 3
 GROUP BY
 	start_station_name
-
-
 
 
 
