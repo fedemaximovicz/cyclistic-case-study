@@ -237,7 +237,8 @@ SELECT DISTINCT(rideable_type) FROM trip_data_staging
 ```
 ![checking rideable_type values](/images/check-rideable-type.png)
 
-**Checking the member_casual column**:
+**Checking the member_casual column**
+
 ![checking member_casual values](/images/check-member-casual.png)
 
 ```SQL
@@ -348,7 +349,9 @@ This query returned 7377 rows.
 
 This showed that only the end_lat and end_lng columns contained null values, and the rows are trips that were started but without data of the ending location of the trip. This might be an indicator of bikes that were stolen.
 It was also found something that all rows with null end station coordinates had in common.
+
 ![start times and end times of trips with null values of end station coordinates](/images/trip-durations.png)
+
 The trips lasted more than 24 hours.
 
 The rows with null end_station coordinates were distributed in the following way for rideable types and user types:
@@ -490,6 +493,7 @@ It was decided to keep this rows, since the deletion of them would represent a l
 
 
 # Analysis
+### Trips by Client Type
 The first step of the analysis was to check how the trips were distributed between member and casual clients.
 ```SQL
 SELECT
@@ -505,4 +509,200 @@ GROUP BY
 | casual        | 2164197         |
 | member        | 3761927         |
 
+There are more trips taken by Member clients than Casual clients. Around 63% of the trips were taken by member clients, Casual clients represent around 37% of the trips.
 
+### Trips by Rideable Type
+```SQL
+SELECT
+	rideable_type,
+	count(*) FILTER (WHERE member_casual = 'casual') AS trips_casual,
+	count (*) FILTER (WHERE member_casual = 'member') AS trips_member
+FROM
+	trip_data_staging
+GROUP BY 
+	rideable_type
+```
+| rideable_type    | trips_casual | trips_member |
+|------------------|--------------|--------------|
+| classic_bike     | 979745       | 1810477      |
+| electric_bike    | 1099237      | 1892328      |
+| electric_scooter | 85215        | 59122        |
+
+#### Member Clients:
+![trips by rideable type, member clients](/images/char_trips_rideable_member.png)
+#### Casual Clients:
+![trips by rideable type, casual clients](/images/chart_trips_rideable_casual.png)
+
+The insight obtained from this, is that the preference of bikes of each type of client is very simillar, the most popular bike for both client types is the electric bike, followed by the classic bike. A small number of trips were taken with electric scooters. 
+
+
+### Number of trips by month.
+```SQL
+SELECT
+	DATE_TRUNC('month', started_at) AS month,
+	COUNT (*) FILTER (WHERE member_casual = 'member') AS member_trips,
+	COUNT (*) FILTER (WHERE member_casual = 'casual') AS casual_trips
+FROM
+	trip_data_staging
+GROUP BY
+	month
+ORDER BY 
+	month
+```
+![number of trips by month](/images/number_trips_month.png)
+The usage of bikes by month by both type of users is very, both having a peak in the Summer months, specially in late August. The number of trips of both client types go down in the Winter months.
+Member clients take more trips than casual during all months of the year.    
+
+
+### Average number of trips by day of the week.
+```SQL
+SELECT
+	DATE_TRUNC('month', started_at) AS month,
+	COUNT (*) FILTER (WHERE member_casual = 'member') AS member_trips,
+	COUNT (*) FILTER (WHERE member_casual = 'casual') AS casual_trips
+FROM
+	trip_data_staging
+GROUP BY
+	month
+ORDER BY 
+	month
+```
+![average number of trips by day of the week](/images/avg_trips_week.png)
+
+Casual clients take more trips on weekends, peaking on Saturdays. This can mean that most casual riders prefer to use the bikes in their free time for leisure activities on the weekend.
+Member clients, on the other hand, take more trips on working days. This can imply that member clients are using the bikes to commute to work.
+
+
+### Average number of trips by hour.
+```SQL
+SELECT 
+    EXTRACT(HOUR FROM trip_hour) AS hour_of_day,
+    AVG(trip_count) FILTER(WHERE member_casual = 'member') AS avg_trips_member,
+	AVG(trip_count) FILTER(WHERE member_casual = 'casual') AS avg_trips_casual
+FROM (
+    SELECT 
+        member_casual,
+        DATE_TRUNC('hour', started_at) AS trip_hour,
+        COUNT(*) AS trip_count
+    FROM 
+        trip_data_staging
+    GROUP BY 
+        member_casual,
+        trip_hour
+) hourly_trips
+GROUP BY 
+    hour_of_day
+ORDER BY
+	hour_of_day
+```
+![average number of trips by hour](/images/avg_trips_hour.png)
+
+This chart shows something interesting, member clients have two peaks of average trips taken per hour, at 8am and 5pm which matches with the time of the day that people use to commute to work and back home. This confirms that member clients use the bikes to commute to work and return to their homes from work.
+
+Casual clients tend to take more trips in the afternoon, peaking at 5pm. The usage of bikes at these hours may indicate again, leisure activities, since people tend to practice these type of activities in the afternoon. Also, the fact that the peak is at 5pm may indicate that some casual riders could be using the bikes to return home from work.
+
+
+### Number of trips by station
+**Member Clients**:
+```SQL
+SELECT
+	start_station_name,
+	AVG(start_lat) AS avg_latitude,
+	AVG(start_lng) AS avg_longitude,
+	count(*) AS number_of_trips
+FROM 
+	trip_data_staging
+WHERE
+	start_station_name IS NOT NULL AND member_casual = 'member'
+GROUP BY
+	start_station_name
+ORDER BY 
+	number_of_trips DESC
+```
+![number of trips by station, member clients](/images/trips_stations_members.png)
+
+The most popular stations for Member clients are in areas where the businesses are located like "The Loop", and high density residential buildings such as "Near North Side". Popular stations are also well distributed to the North of Chicago up to residential neighborhoods like "Lake View". Also, there are popular stations in university areas, like Hyde Park where the University of Chicago is located.
+
+The fact that there are many station with a high volume of trips started in these mentioned areas, of businesses, residential, and universities, show that most Member clients use the bikes as a mean of transport to go to work or to the university.
+
+
+**Casual Clients**:
+```SQL
+SELECT
+	start_station_name,
+	AVG(start_lat) AS avg_latitude,
+	AVG(start_lng) AS avg_longitude,
+	count(*) AS number_of_trips
+FROM 
+	trip_data_staging
+WHERE
+	start_station_name IS NOT NULL AND member_casual = 'casual'
+GROUP BY
+	start_station_name
+ORDER BY 
+	number_of_trips DESC
+```
+![number of trips by station, casual clients](/images/trips_stations_casual.png)
+The most popular stations to start a trip for Casual clients are in areas with parks or attractions, like the one located in Adler Planetarium, the Shed Aquarium, Millenium Park and Maggie Daley Park, the one in Lake Shore & North Boulevard by the Lincoln Monument Gardens and the Chicago History Museum.
+The most popular station, with 50925 trips started, is the station in Streeter Dr & Grand Ave where the Addams (Jane) Memorial Park is, and the Navy Pier.
+
+The insights obtained from this is that casual clients prefer to start their trips from stations located in parks and near touristic attractions, this also can indicate that there might be a percentage of casual clients who are tourists.
+
+
+### Average trip duration by Client Type (in minutes):
+```SQL
+SELECT 
+	member_casual,
+	AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) AS avg_trip_duration_minutes
+FROM
+	trip_data_staging
+WHERE
+	z_score <= 3
+GROUP BY
+	member_casual
+```
+| member_casual | avg_trip_duration_minutes  |
+|---------------|----------------------------|
+| casual        | 16.33344901926014037650    |
+| member        | 11.46290994790177282110    |
+
+Casual clients take longer trips than Member clients, the average duration of a Casual client's trip is around 16.33 minutes, while the average trip duration of a Member client is around 11.46 minutes.
+
+### Average trip duration by day of the week (in minutes)
+```SQL
+SELECT 
+    TO_CHAR(started_at, 'Day') AS day_of_week,
+    AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+		FILTER (WHERE member_casual = 'member') AS avg_trip_duration_member,
+	AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+		FILTER (WHERE member_casual = 'casual') AS avg_trip_duration_casual
+FROM
+	trip_data_staging
+WHERE
+	z_score <= 3
+GROUP BY
+	day_of_week
+```
+![average trip duration by day of the week](/images/avg_duration_day.png)
+Casual clients take longer trips than Member clients during all days of the week, both take longer trips on weekends.
+
+
+### Average trip duration by hour of day.
+```SQL
+SELECT 
+    EXTRACT(HOUR FROM started_at) AS hour_of_day,
+    AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+		FILTER (WHERE member_casual = 'member') AS avg_trip_duration_member,
+	AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+		FILTER (WHERE member_casual = 'casual') AS avg_trip_duration_casual
+FROM
+	trip_data_staging
+WHERE
+	z_score <= 3
+GROUP BY
+	hour_of_day
+```
+![average trip duration by day of the week](/images/avg_duration_hour.png)
+Casual clients take longer trips than Member clients during all hours of the day. The longest trip durations of Casual clients are registered from 10am to 5pm, with the maximum average trip duration being reached at 2pm with 18.74 minutes. The lowest average trip duration of Casual clients was registerd at 6am, 10.6 minutes.
+
+The trip durations of Member clients are quite similar during the day, they start increasing at 10am and reach their maximum at 5pm with 12.3 minutes of average duration. The lowest average trip duration, just like Casual clients, are registered at 6am being 9.76 minutes.

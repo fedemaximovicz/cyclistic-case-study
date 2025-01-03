@@ -9,6 +9,12 @@ GROUP BY
 
 
 SELECT
+	COUNT(*) AS total_trips
+FROM
+	trip_data_staging
+
+
+SELECT
 	rideable_type,
 	count(*) FILTER (WHERE member_casual = 'casual') AS trips_casual,
 	count (*) FILTER (WHERE member_casual = 'member') AS trips_member
