@@ -1,6 +1,5 @@
 # Cyclistic bike-share
-The aim of this project is to gain insight on how casual members and annual members use Cyclistic bikes differently, by analyzing ride data of the past 12 months. The director of marketing believes the company's future success
-depends on maximizing the number of annual memberships, so these insights will be used to design a new marketing strategy to increase the number of annual members.
+The aim of this project is to gain insight on how casual members and annual members use Cyclistic bikes differently, by analyzing ride data of the past 12 months. The director of marketing believes the company's future success depends on maximizing the number of annual memberships, so these insights will be used to design a new marketing strategy to increase the number of annual members.
 
 # Ask
 **Three questions will guide the future marketing program:**
@@ -10,7 +9,7 @@ depends on maximizing the number of annual memberships, so these insights will b
 
 
 # Prepare
-The data used for the project is Cyclistic's historical trip data (https://divvy-tripdata.s3.amazonaws.com/index.html). The last 12 months of data available will be used, starting from November 2023 up to October 2024. It's organized in 12 CSV, since Cyclistic uploads the trip data monthly. The 12 files were decompressed and extracted into a folder named "data".
+The data used for the project is Cyclistic's historical trip data (https://divvy-tripdata.s3.amazonaws.com/index.html). The last 12 months of data available will be used, starting from November 2023 up to October 2024. It's organized in 12 CSV files, since Cyclistic uploads the trip data monthly. The 12 files were decompressed and extracted into a folder named "data".
 
 ### Quality of the data
 The data used in the project can be considered to be **good data**, since it meets the conditions of being **R**eliable, **O**riginal, **C**omprehensive, **C**urrent, and **C**ited. 
@@ -706,3 +705,18 @@ GROUP BY
 Casual clients take longer trips than Member clients during all hours of the day. The longest trip durations of Casual clients are registered from 10am to 5pm, with the maximum average trip duration being reached at 2pm with 18.74 minutes. The lowest average trip duration of Casual clients was registerd at 6am, 10.6 minutes.
 
 The trip durations of Member clients are quite similar during the day, they start increasing at 10am and reach their maximum at 5pm with 12.3 minutes of average duration. The lowest average trip duration, just like Casual clients, are registered at 6am being 9.76 minutes.
+
+
+# Recommendations
+
+1. **Highlight the benefits of commuting to work using Cyclistic's annual membership**: Since Member clients mainly use bikes for commuting, a good marketing strategy can be focused on highlighting the benefits of how Cyclistic Bikes annual membership can be cheaper than commuting by car and more comfortable than public transport, plus the known benefits of bikes like avoiding traffic jams.
+
+2. **Ad placing**: Knowing that Casual clients' popular stations are located in parks and landmarks, placing ads in those locations, highlighting the benefits of Cyclistic's annual subscription plans, can reach many casual riders. Also, placing ads on streets known for traffic jams can attract new users, put a QR code for people to scan that takes them to download the Cyclistic app and emphasize the benefits of the annual subscription.
+
+3. **Special benefits for Member clients**: Add special benefits for frequent riders with an annual membership. For example, members who take more than a certain number of trips per week get a free trip for the next week. These types of benefits and promotions can convince a Casual rider who uses the bikes frequently to switch to an annual subscription to enjoy these benefits.
+
+
+# Conclusion
+From the insights obtained from the analysis, the main differences discovered between Casual and Member clients are that Casual clients tend to use the bikes for recreational activities, and Member clients use them mainly for commuting, this resulted from analysing the most popular stations of each client type which showed that most Member clients start their trips in business and high-density residential areas of the city. In contrast, the most popular stations for Casual clients were the ones located in parks and landmarks. Analysis of the average number of trips per hour and day of the week also showed this pattern, with Member clients taking more trips during commuting hours and on working days, and Casual clients taking more trips in the afternoon and weekends. 
+
+Implementing the recommendations above can help convert Casual clients to Members with an annual subscription as well as bring new customers signing up directly for an annual membership..
