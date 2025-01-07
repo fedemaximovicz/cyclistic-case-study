@@ -449,7 +449,7 @@ ORDER BY number_of_trips DESC
 ![number of trips startead on each station in the given coordinate interval](/images/n-stations-coord.png)
 The number of trips for each station were quite evenly distributed, so this approach was not possible.
 
-#### Deleting the rows with nulls or not
+#### Deciding wether to delete the rows with nulls or not
 To measure the impact the deletion of these records will have on the data, the first thing was to find the type of bikes containing this null values to see if this affects a specific type of bike.
 ```SQL
 SELECT
@@ -489,6 +489,7 @@ Each client type has a similar number of rows with null station data.
 
 It was decided to keep this rows, since the deletion of them would represent a loss of around the 16.36% of electric bike trips and this will have an inpact on the analysis of trips by rideable type. This rows will be excluded from the queries when working on geographic analysis of the trips.
 
+### Checking for outliers
 
 
 # Analysis

@@ -392,22 +392,15 @@ GROUP BY member_casual
 
 
 
--- WITH stats AS (
---     SELECT 
---         AVG(EXTRACT(EPOCH FROM (ended_at - started_at) / 60)) AS mean,
---         STDDEV(EXTRACT(EPOCH FROM (ended_at - started_at) / 60)) AS stddev
---     FROM trip_data_staging
--- )
--- SELECT 
---     *,
--- 	EXTRACT(EPOCH FROM (ended_at - started_at))/60 AS duration
--- FROM 
---     trip_data_staging,
---     stats
--- WHERE 
---     EXTRACT(EPOCH FROM (ended_at - started_at)) > (mean + (3 * stddev))
---     OR EXTRACT(EPOCH FROM (ended_at - started_at)) < (mean - (3 * stddev))
+ALTER TABLE trip_data_staging ADD COLUMN trip_duration_minutes NUMERIC;
 
+
+UPDATE
+    trip_data_staging
+SET
+	trip_duration_minutes = EXTRACT(EPOCH FROM (ended_at - started_at)) / 60
+
+SELECT * FROM trip_data_staging LIMIT 100
 
 
 WITH stats AS (
@@ -432,42 +425,40 @@ WHERE
 
 WITH stats AS (
     SELECT 
-        AVG((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60) AS mean_duration,
-        STDDEV((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60) AS stddev_duration
+        AVG(trip_duration_minutes) AS mean_duration,
+        STDDEV(trip_duration_minutes) AS stddev_duration
     FROM 
         trip_data_staging
 )
 SELECT 
     t.*,
-    (EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60 AS trip_duration_minutes,
-    ((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / (60 - s.mean_duration)) 
+    (trip_duration_minutes - s.mean_duration) 
 		/ s.stddev_duration AS z_score
 FROM 
     trip_data_staging t, stats s
 WHERE 
     ABS(
-		((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / (60 - s.mean_duration)) 
+		(trip_duration_minutes - s.mean_duration) 
 		/ s.stddev_duration
 	) > 3;
+
 
 
 
 ALTER TABLE trip_data_staging ADD COLUMN z_score NUMERIC;
 
 
-
 WITH stats AS (
     SELECT 
-        AVG((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60) AS mean_duration,
-        STDDEV((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60) AS stddev_duration
+        AVG(trip_duration_minutes) AS mean_duration,
+        STDDEV(trip_duration_minutes) AS stddev_duration
     FROM 
         trip_data_staging
 )
 UPDATE
     trip_data_staging
 SET
-	z_score = (EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) 
-		/ (60 - (SELECT mean_duration FROM stats)) 
+	z_score = (trip_duration_minutes - (SELECT mean_duration FROM stats))
 		/ (SELECT stddev_duration FROM stats)
 
 
@@ -475,6 +466,61 @@ SET
 SELECT
 	*
 FROM
+	trip_data_staging
+WHERE
+	ABS(z_score) > 3
+
+
+SELECT
+	MIN(trip_duration_minutes),
+	MAX(trip_duration_minutes)
+FROM
+	trip_data_staging
+WHERE
+	ABS(z_score) > 3
+
+
+SELECT
+	MIN(trip_duration_minutes),
+	MAX(trip_duration_minutes)
+FROM
+	trip_data_staging
+WHERE
+	ABS(z_score) <= 3
+
+
+	
+--found records with negative trip durations
+SELECT 
+	* 
+FROM 
+	trip_data_staging 
+WHERE 
+	trip_duration_minutes < 0
+
+
+
+SELECT
+	*
+FROM
+	trip_data_staging
+WHERE
+	trip_duration_minutes < 2
+
+
+SELECT AVG(trip_duration_minutes) FROM trip_data_staging
+SELECT STDDEV(trip_duration_minutes) FROM trip_data_staging
+
+
+--removing outliers
+DELETE FROM 
+	trip_data_staging 
+WHERE 
+	trip_duration_minutes < 2
+
+
+
+DELETE FROM
 	trip_data_staging
 WHERE
 	ABS(z_score) > 3
