@@ -489,7 +489,139 @@ Each client type has a similar number of rows with null station data.
 
 It was decided to keep this rows, since the deletion of them would represent a loss of around the 16.36% of electric bike trips and this will have an inpact on the analysis of trips by rideable type. This rows will be excluded from the queries when working on geographic analysis of the trips.
 
-### Checking for outliers
+### Checking for outliers in trip durations
+**Checking for the maximum trip duration in minutes**:
+```SQL
+SELECT
+	MAX(EXTRACT(EPOCH FROM (ended_at - started_at)) / 60)
+FROM trip_data_staging
+```
+The maximum trip duratioon returned was of 1559.93 minutes, so an extreme value was already spotted.
+
+**To make queries simpler, a trip_duration column was added to the table**:
+```SQL
+ALTER TABLE trip_data_staging ADD COLUMN trip_duration_minutes NUMERIC;
+
+
+UPDATE
+    trip_data_staging
+SET
+	trip_duration_minutes = EXTRACT(EPOCH FROM (ended_at - started_at)) / 60
+```
+
+The method chosen to identify outliers was the Z-Score method, which calculates how far a trip's duration is from the mean, in standard deviations.
+
+**Z = (Trip Duration - Mean) / Standard Deviation**
+
+If a trip duration has the absolute value of a Z_Score more than 3 it will be considered an outlier, which means that this trip duration is more than three standard deviations away from the mean.
+
+```SQL
+WITH stats AS (
+    SELECT 
+        AVG(trip_duration_minutes) AS mean_duration,
+        STDDEV(trip_duration_minutes) AS stddev_duration
+    FROM 
+        trip_data_staging
+)
+SELECT 
+    t.*,
+    (trip_duration_minutes - s.mean_duration) 
+		/ s.stddev_duration AS z_score
+FROM 
+    trip_data_staging t, stats s
+WHERE 
+    ABS(
+		(trip_duration_minutes - s.mean_duration) 
+		/ s.stddev_duration
+	) > 3;
+```
+![trips with a Z-Score bigger than 3](/images/outliers_found.png)
+33,213 outliers were found
+
+To make querying easier, a z_score column was created:
+```SQL
+ALTER TABLE trip_data_staging ADD COLUMN z_score NUMERIC;
+
+
+WITH stats AS (
+    SELECT 
+        AVG(trip_duration_minutes) AS mean_duration,
+        STDDEV(trip_duration_minutes) AS stddev_duration
+    FROM 
+        trip_data_staging
+)
+UPDATE
+    trip_data_staging
+SET
+	z_score = (trip_duration_minutes - (SELECT mean_duration FROM stats))
+		/ (SELECT stddev_duration FROM stats)
+```
+
+**Checking minimum and maximum trip durations of outliers**
+To explore these trip duration outliers deeper, the next step was to check their minimum and maximum values
+```SQL
+SELECT
+	MIN(trip_duration_minutes),
+	MAX(trip_duration_minutes)
+FROM
+	trip_data_staging
+WHERE
+	ABS(z_score) > 3
+```
+![minimum and maximum outlier trip durations](/images/minmax-outliers.png)
+
+A negative value was found as a minimum, which means there exist negative trip durations in the dataset.
+
+**Trips with a negative trip duration**:
+```SQL
+SELECT 
+	* 
+FROM 
+	trip_data_staging 
+WHERE 
+	trip_duration_minutes < 0
+```
+![trips with negative trip durations](/images/negative_trip_durations.png)
+
+258 trips with negative trip duration were found.
+
+**Checking minimum and maximum trip durations of non-outliers**:
+```SQL
+SELECT
+	MIN(trip_duration_minutes),
+	MAX(trip_duration_minutes)
+FROM
+	trip_data_staging
+WHERE
+	ABS(z_score) <= 3
+```
+![minimum and maximum non-outlier trip durations](/images/minmax_non_outliers.png)
+
+The minimum trip duration was of 0 minutes, this means that there are trips with very short trip durations which may indicate test rides or users making a mistake when starting the trip and finishing it right away. These short trips do not make sense for the scope of this project, so the minimum trip duration considered will be of 2 minutes.
+```SQL
+SELECT
+	*
+FROM
+	trip_data_staging
+WHERE
+	trip_duration_minutes < 2
+```
+![trips with a duration of less than 2 minutes](/images/lessthantwominutes_trips.png)
+
+There are 246,857 trips with a duration of less than two minutes.
+
+#### Removing outliers
+```SQL
+DELETE FROM 
+	trip_data_staging 
+WHERE 
+	trip_duration_minutes < 2
+
+DELETE FROM
+	trip_data_staging
+WHERE
+	ABS(z_score) > 3
+```
 
 
 # Analysis

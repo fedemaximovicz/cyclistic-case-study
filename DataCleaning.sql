@@ -400,26 +400,8 @@ UPDATE
 SET
 	trip_duration_minutes = EXTRACT(EPOCH FROM (ended_at - started_at)) / 60
 
+
 SELECT * FROM trip_data_staging LIMIT 100
-
-
-WITH stats AS (
-    SELECT 
-        AVG((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60) AS mean_duration,
-        STDDEV((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60) AS stddev_duration
-    FROM 
-        trip_data_staging
-)
-SELECT 
-    t.*,
-    (EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60 AS trip_duration_minutes,
-    ((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60 - s.mean_duration) 
-		/ s.stddev_duration AS z_score
-FROM 
-    trip_data_staging t, stats s
-WHERE 
-    ABS(((EXTRACT(EPOCH FROM ended_at) - EXTRACT(EPOCH FROM started_at)) / 60 - s.mean_duration) 
-		/ s.stddev_duration) > 3;
 
 
 
