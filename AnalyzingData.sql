@@ -268,3 +268,14 @@ FROM
 WHERE
 	DATE_TRUNC('day', started_at) = '2024-09-21 00:00:00'
 	AND (start_station_name IS NOT NULL AND end_station_name IS NOT NULL)
+
+
+
+SELECT
+	rideable_type,
+	AVG(trip_duration_minutes) FILTER(WHERE member_casual = 'member') AS avg_duration_member,
+	AVG(trip_duration_minutes) FILTER(WHERE member_casual = 'casual') AS avg_duration_casual
+FROM
+	trip_data_staging
+GROUP BY
+	rideable_type
