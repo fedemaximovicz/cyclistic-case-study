@@ -638,8 +638,8 @@ GROUP BY
 ```
 | member_casual | number_of_trips |
 |---------------|-----------------|
-| casual        | 2164197         |
-| member        | 3761927         |
+| casual        | 2042971         |
+| member        | 3602825         |
 
 There are more trips taken by Member clients than Casual clients. Around 63% of the trips were taken by member clients, Casual clients represent around 37% of the trips.
 
@@ -656,14 +656,14 @@ GROUP BY
 ```
 | rideable_type    | trips_casual | trips_member |
 |------------------|--------------|--------------|
-| classic_bike     | 979745       | 1810477      |
-| electric_bike    | 1099237      | 1892328      |
-| electric_scooter | 85215        | 59122        |
+| classic_bike     | 941136       | 1756425      |
+| electric_bike    | 1022780      | 1792286      |
+| electric_scooter | 79055        | 54114        |
 
 #### Member Clients:
-![trips by rideable type, member clients](/images/char_trips_rideable_member.png)
+![trips by rideable type, member clients](/images/trips_rideable_member.png)
 #### Casual Clients:
-![trips by rideable type, casual clients](/images/chart_trips_rideable_casual.png)
+![trips by rideable type, casual clients](/images/trips_rideable_casual.png)
 
 The insight obtained from this, is that the preference of bikes of each type of client is very simillar, the most popular bike for both client types is the electric bike, followed by the classic bike. A small number of trips were taken with electric scooters. 
 
@@ -682,7 +682,7 @@ ORDER BY
 	month
 ```
 ![number of trips by month](/images/number_trips_month.png)
-The usage of bikes by month by both type of users is very, both having a peak in the Summer months, specially in late August. The number of trips of both client types go down in the Winter months.
+The usage of bikes by month by both type of users is very similar, both having a peak in the Summer months, specially in late August. The number of trips of both client types go down in the Winter months reaching its lower point in January.
 Member clients take more trips than casual during all months of the year.    
 
 
@@ -735,22 +735,21 @@ Casual clients tend to take more trips in the afternoon, peaking at 5pm. The usa
 
 
 ### Number of trips by station
-**Member Clients**:
 ```SQL
 SELECT
 	start_station_name,
 	AVG(start_lat) AS avg_latitude,
 	AVG(start_lng) AS avg_longitude,
-	count(*) AS number_of_trips
+	count(*) FILTER (WHERE member_casual = 'member') AS number_trips_member,
+	count(*) FILTER (WHERE member_casual = 'casual') AS number_trips_casual
 FROM 
 	trip_data_staging
 WHERE
-	start_station_name IS NOT NULL AND member_casual = 'member'
+	start_station_name IS NOT NULL
 GROUP BY
 	start_station_name
-ORDER BY 
-	number_of_trips DESC
 ```
+**Member Clients**:
 ![number of trips by station, member clients](/images/trips_stations_members.png)
 
 The most popular stations for Member clients are in areas where the businesses are located like "The Loop", and high density residential buildings such as "Near North Side". Popular stations are also well distributed to the North of Chicago up to residential neighborhoods like "Lake View". Also, there are popular stations in university areas, like Hyde Park where the University of Chicago is located.
@@ -759,24 +758,9 @@ The fact that there are many station with a high volume of trips started in thes
 
 
 **Casual Clients**:
-```SQL
-SELECT
-	start_station_name,
-	AVG(start_lat) AS avg_latitude,
-	AVG(start_lng) AS avg_longitude,
-	count(*) AS number_of_trips
-FROM 
-	trip_data_staging
-WHERE
-	start_station_name IS NOT NULL AND member_casual = 'casual'
-GROUP BY
-	start_station_name
-ORDER BY 
-	number_of_trips DESC
-```
 ![number of trips by station, casual clients](/images/trips_stations_casual.png)
 The most popular stations to start a trip for Casual clients are in areas with parks or attractions, like the one located in Adler Planetarium, the Shed Aquarium, Millenium Park and Maggie Daley Park, the one in Lake Shore & North Boulevard by the Lincoln Monument Gardens and the Chicago History Museum.
-The most popular station, with 50925 trips started, is the station in Streeter Dr & Grand Ave where the Addams (Jane) Memorial Park is, and the Navy Pier.
+The most popular station, with 48286 trips started, is the station in Streeter Dr & Grand Ave where the Addams (Jane) Memorial Park is, and the Navy Pier.
 
 The insights obtained from this is that casual clients prefer to start their trips from stations located in parks and near touristic attractions, this also can indicate that there might be a percentage of casual clients who are tourists.
 
@@ -785,33 +769,29 @@ The insights obtained from this is that casual clients prefer to start their tri
 ```SQL
 SELECT 
 	member_casual,
-	AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) AS avg_trip_duration_minutes
+	AVG (trip_duration_minutes) AS avg_trip_duration_minutes
 FROM
 	trip_data_staging
-WHERE
-	z_score <= 3
 GROUP BY
 	member_casual
 ```
 | member_casual | avg_trip_duration_minutes  |
 |---------------|----------------------------|
-| casual        | 16.33344901926014037650    |
-| member        | 11.46290994790177282110    |
+| casual        | 18.7873701557274512        |
+| member        | 12.0712984698303877        |
 
-Casual clients take longer trips than Member clients, the average duration of a Casual client's trip is around 16.33 minutes, while the average trip duration of a Member client is around 11.46 minutes.
+Casual clients take longer trips than Member clients, the average duration of a Casual client's trip is around 18.79 minutes, while the average trip duration of a Member client is around 12.07 minutes.
 
 ### Average trip duration by day of the week (in minutes)
 ```SQL
 SELECT 
     TO_CHAR(started_at, 'Day') AS day_of_week,
-    AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+    AVG (trip_duration_minutes) 
 		FILTER (WHERE member_casual = 'member') AS avg_trip_duration_member,
-	AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+	AVG (trip_duration_minutes) 
 		FILTER (WHERE member_casual = 'casual') AS avg_trip_duration_casual
 FROM
 	trip_data_staging
-WHERE
-	z_score <= 3
 GROUP BY
 	day_of_week
 ```
@@ -823,21 +803,19 @@ Casual clients take longer trips than Member clients during all days of the week
 ```SQL
 SELECT 
     EXTRACT(HOUR FROM started_at) AS hour_of_day,
-    AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+    AVG (trip_duration_minutes) 
 		FILTER (WHERE member_casual = 'member') AS avg_trip_duration_member,
-	AVG (EXTRACT(EPOCH FROM (ended_at - started_at)) / 60) 
+	AVG (trip_duration_minutes) 
 		FILTER (WHERE member_casual = 'casual') AS avg_trip_duration_casual
 FROM
 	trip_data_staging
-WHERE
-	z_score <= 3
 GROUP BY
 	hour_of_day
 ```
 ![average trip duration by day of the week](/images/avg_duration_hour.png)
-Casual clients take longer trips than Member clients during all hours of the day. The longest trip durations of Casual clients are registered from 10am to 5pm, with the maximum average trip duration being reached at 2pm with 18.74 minutes. The lowest average trip duration of Casual clients was registerd at 6am, 10.6 minutes.
+Casual clients take longer trips than Member clients during all hours of the day. The longest trip durations of Casual clients are registered from 10am to 5pm, with the maximum average trip duration being reached at 11am with 22.48 minutes. The lowest average trip duration of Casual clients was registerd at 6am, 11.88 minutes.
 
-The trip durations of Member clients are quite similar during the day, they start increasing at 10am and reach their maximum at 5pm with 12.3 minutes of average duration. The lowest average trip duration, just like Casual clients, are registered at 6am being 9.76 minutes.
+The trip durations of Member clients are quite similar during the day, they start increasing at 10am and reach their maximum at 5pm with 12.86 minutes of average duration. The lowest average trip duration, just like Casual clients, are registered at 6am being 10.24 minutes.
 
 
 # Recommendations
