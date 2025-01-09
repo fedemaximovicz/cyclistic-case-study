@@ -799,7 +799,7 @@ GROUP BY
 Casual clients take longer trips than Member clients during all days of the week, both take longer trips on weekends.
 
 
-### Average trip duration by hour of day.
+### Average trip duration by hour of day (minutes).
 ```SQL
 SELECT 
     EXTRACT(HOUR FROM started_at) AS hour_of_day,
@@ -812,11 +812,51 @@ FROM
 GROUP BY
 	hour_of_day
 ```
-![average trip duration by day of the week](/images/avg_duration_hour.png)
+![average trip duration by hour](/images/avg_duration_hour.png)
 Casual clients take longer trips than Member clients during all hours of the day. The longest trip durations of Casual clients are registered from 10am to 5pm, with the maximum average trip duration being reached at 11am with 22.48 minutes. The lowest average trip duration of Casual clients was registerd at 6am, 11.88 minutes.
 
 The trip durations of Member clients are quite similar during the day, they start increasing at 10am and reach their maximum at 5pm with 12.86 minutes of average duration. The lowest average trip duration, just like Casual clients, are registered at 6am being 10.24 minutes.
 
+### Average trip duration by station (minutes).
+```SQL
+SELECT
+	start_station_name,
+	AVG(start_lat) AS avg_latitude,
+	AVG(start_lng) AS avg_longitude,
+	AVG (trip_duration_minutes) 
+		FILTER (WHERE member_casual = 'member') AS avg_trip_duration_member,
+	AVG (trip_duration_minutes) 
+		FILTER (WHERE member_casual = 'casual') AS avg_trip_duration_casual
+FROM 
+	trip_data_staging
+WHERE
+	start_station_name IS NOT NULL
+GROUP BY
+	start_station_name
+```
+
+Trip durations among station were distributed quite evenly for both Member and Casual clients.
+![average trip duration by stations, members](/images/duration_station_member.png)
+
+![average trip duration by stations, casual clients](/images/duration_station_casual.png)
+
+### Average trip duration by rideable type (minutes).
+```SQL
+SELECT
+	rideable_type,
+	AVG(trip_duration_minutes) FILTER(WHERE member_casual = 'member') AS avg_duration_member,
+	AVG(trip_duration_minutes) FILTER(WHERE member_casual = 'casual') AS avg_duration_casual
+FROM
+	trip_data_staging
+GROUP BY
+	rideable_type
+```
+**Member Clients**:
+![average trip duration by rideable type, members](/images/avg_duration_rideable_members.png)
+Trip durations for each type of bike are similar for Member clients, classic bikes have the longest average trip duration for Member clients, with 12.9 minutes followed by electric bikes with 11.3. 
+
+![average trip duration by rideable type, members](/images/avg_duration_rideable_casual.png)
+Casual clients, on the other hand, have significantly longer trips with classic bikes with an average of 23.3 minutes, followed by electric bikes with trips lasting an average of 15.1 minutes.
 
 # Recommendations
 
@@ -830,4 +870,4 @@ The trip durations of Member clients are quite similar during the day, they star
 # Conclusion
 From the insights obtained from the analysis, the main differences discovered between Casual and Member clients are that Casual clients tend to use the bikes for recreational activities, and Member clients use them mainly for commuting, this resulted from analysing the most popular stations of each client type which showed that most Member clients start their trips in business and high-density residential areas of the city. In contrast, the most popular stations for Casual clients were the ones located in parks and landmarks. Analysis of the average number of trips per hour and day of the week also showed this pattern, with Member clients taking more trips during commuting hours and on working days, and Casual clients taking more trips in the afternoon and weekends. 
 
-Implementing the recommendations above can help convert Casual clients to Members with an annual subscription as well as bring new customers signing up directly for an annual membership..
+Implementing the recommendations above can help convert Casual clients to Members with an annual subscription as well as bring new customers signing up directly for an annual membership.
