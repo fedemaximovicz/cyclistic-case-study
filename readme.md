@@ -1,7 +1,11 @@
-# Cyclistic bike-share
+# Cyclistic bike-share Analysis Project
+This project is the first case study from the two options offered as a capstone project for the Google Data Analytics program. The project is about a fictitious bike-sharing company based in Chicago called Cyclistic. 
+While the company is fictitious, the data provided for the project isn't. The data is real trip data from the City of Chicago's Divvy bicycle-sharing service. Taken from the case study instructions: The datasets have a different name because Cyclist is a fictional company. For the purposes of this case study, the datasets are appropriate and will enable you to answer the business questions. The data has been made available by Motivate International Inc. under this [license](https://divvybikes.com/data-license-agreement).
+
+
+# Ask Phase
 The aim of this project is to gain insight on how casual members and annual members use Cyclistic bikes differently, by analyzing ride data of the past 12 months. The director of marketing believes the company's future success depends on maximizing the number of annual memberships, so these insights will be used to design a new marketing strategy to increase the number of annual members.
 
-# Ask
 **Three questions will guide the future marketing program:**
 1. How do annual members and casual riders use Cyclistic bikes differently?
 2. Why would casual riders buy Cyclistic annual memberships?
@@ -24,12 +28,12 @@ The tool of choice for this project was SQL with Postgres as the RDBMS, all the 
 | ride_id | rideable_type | started_at | ended_at | start_station_name | start_station_id | end_station_name | end_station_id | start_lat | start_lng | end_lat | end_lng | member_casual |
 |---------|----------------|------------|----------|--------------------|------------------|------------------|----------------|-----------|-----------|---------|---------|----------------|
 
-so it was decided to put all of them on a single table called TripData. This was achieved by using a Python script to "automate" the process of loading the 12 CSV files to the database.
+So it was decided to put all of them on a single table called trip_data. This was achieved by using a Python script to "automate" the process of loading the 12 CSV files to the database.
 
 
 The first step of this process was to create the table with the appropiate columns and data types:
 ```SQL
-CREATE TABLE TripData (
+CREATE TABLE trip_data (
 	ride_id VARCHAR(50),
 	rideable_type VARCHAR(50),
 	started_at TIMESTAMP,
@@ -118,7 +122,7 @@ if __name__ == "__main__":
   import_csv()
 ```
 
-# Process
+# Processing
 The first step taken to begin the data cleaning process was checking for duplicates. 
 The following SQL query uses a CTE with ROW_NUMBER() and PARTITION BY, it checks for exact duplicates containing the same values in all of the columns. 
 ```SQL
