@@ -1,6 +1,13 @@
+![Cyclistic logo](/images/cyclistic-logo.png) 
 # Cyclistic bike-share Analysis Project
 This project is the first case study from the two options offered as a capstone project for the Google Data Analytics program. The project is about a fictitious bike-sharing company based in Chicago called Cyclistic. 
-While the company is fictitious, the data provided for the project isn't. The data is real trip data from the City of Chicago's Divvy bicycle-sharing service. Taken from the case study instructions: "*The datasets have a different name because Cyclist is a fictional company. For the purposes of this case study, the datasets are appropriate and will enable you to answer the business questions. The data has been made available by Motivate International Inc. under this [license](https://divvybikes.com/data-license-agreement)*".
+While the company is fictitious, the data provided for the project isn't. The data is real trip data from the City of Chicago's Divvy bicycle-sharing service. Taken from the case study instructions: "*The datasets have a different name because Cyclist is a fictional company. For the purposes of this case study, the datasets are appropriate and will enable you to answer the business questions. The data has been made available by Motivate International Inc. under this [license](https://divvybikes.com/data-license-agreement)*". For the scenario given for this Case Study the data will be interpreted as collected by Cyclistic, simulating a real-world scenario.
+
+## Cyclistic
+From the Case Study instructions provided: "*Cyclistic is a bike-share program that features more than 5,800 bicycles and 600
+docking stations. Cyclistic sets itself apart by also offering reclining bikes, hand
+tricycles, and cargo bikes, making bike-share more inclusive to people with disabilities
+and riders who can't use a standard two-wheeled bike.*"
 
 ## Table of Contents:
 The project structure is based on the six phases of Data Analysis learned in the Google Data Analytics program: Ask, Prepare, Process, Analyze, Share, and Act.
@@ -459,6 +466,7 @@ GROUP BY
 ORDER BY number_of_trips DESC
 ```
 ![number of trips startead on each station in the given coordinate interval](/images/n-stations-coord.png)
+
 The number of trips for each station were quite evenly distributed, so this approach was not possible.
 
 #### Deciding wether to delete the rows with nulls or not
