@@ -1,6 +1,14 @@
 # Cyclistic bike-share Analysis Project
 This project is the first case study from the two options offered as a capstone project for the Google Data Analytics program. The project is about a fictitious bike-sharing company based in Chicago called Cyclistic. 
-While the company is fictitious, the data provided for the project isn't. The data is real trip data from the City of Chicago's Divvy bicycle-sharing service. Taken from the case study instructions: The datasets have a different name because Cyclist is a fictional company. For the purposes of this case study, the datasets are appropriate and will enable you to answer the business questions. The data has been made available by Motivate International Inc. under this [license](https://divvybikes.com/data-license-agreement).
+While the company is fictitious, the data provided for the project isn't. The data is real trip data from the City of Chicago's Divvy bicycle-sharing service. Taken from the case study instructions: "*The datasets have a different name because Cyclist is a fictional company. For the purposes of this case study, the datasets are appropriate and will enable you to answer the business questions. The data has been made available by Motivate International Inc. under this [license](https://divvybikes.com/data-license-agreement)*".
+
+## Table of Contents:
+The project structure is based on the six phases of Data Analysis learned in the Google Data Analytics program: Ask, Prepare, Process, Analyze, Share, and Act.
+1. [Ask Phase](#ask-phase)
+2. [Prepare Phase](#prepare)
+3. [Processing Data](#processing)
+4. [Analysis](#analysis)
+5. [Recommendations](#recommendations)
 
 
 # Ask Phase
@@ -857,9 +865,11 @@ GROUP BY
 ```
 **Member Clients**:
 ![average trip duration by rideable type, members](/images/avg_duration_rideable_members.png)
+
 Trip durations for each type of bike are similar for Member clients, classic bikes have the longest average trip duration for Member clients, with 12.9 minutes followed by electric bikes with 11.3. 
 
 ![average trip duration by rideable type, members](/images/avg_duration_rideable_casual.png)
+
 Casual clients, on the other hand, have significantly longer trips with classic bikes with an average of 23.3 minutes, followed by electric bikes with trips lasting an average of 15.1 minutes.
 
 # Recommendations
