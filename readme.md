@@ -15,6 +15,7 @@ The project structure is based on the six phases of Data Analysis learned in the
 2. [Prepare Phase](#prepare)
 3. [Processing Data](#processing)
 4. [Analysis](#analysis)
+5. [Dashboard](https://public.tableau.com/views/CyclisticBikeSharing_17366089123860/TripsbyClientType?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
 5. [Recommendations](#recommendations)
 
 
